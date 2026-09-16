@@ -10,10 +10,15 @@ const os = require('os');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 
+const APP_VERSION = '3.1.0';
 const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '3mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  lastModified: false,
+  setHeaders(res){ res.setHeader('Cache-Control', 'no-store, max-age=0'); }
+}));
 
 const PORT = Number(process.env.PORT || 3000);
 const ROOT = path.join(os.tmpdir(), 'yt_automix_pro');
@@ -45,7 +50,6 @@ const safe = s => String(s || 'file').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').rep
 const errText = e => String(e?.message || e || 'Unknown error').trim().slice(0, 1800);
 const exists = p => { try { return fs.existsSync(p); } catch { return false; } };
 const abs = p => path.resolve(String(p || ''));
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function spawnChecked(command, args, { job, label, onLine } = {}) {
   return new Promise((resolve, reject) => {
@@ -54,7 +58,7 @@ function spawnChecked(command, args, { job, label, onLine } = {}) {
     if (job) job.child = child;
     const eat = (kind, d) => {
       const t = d.toString();
-      if (kind === 'out') stdout = (stdout + t).slice(-40000); else stderr = (stderr + t).slice(-70000);
+      if (kind === 'out') stdout = (stdout + t).slice(-120000); else stderr = (stderr + t).slice(-120000);
       if (onLine) for (const line of t.split(/\r?\n/)) if (line.trim()) onLine(line.trim());
     };
     child.stdout?.on('data', d => eat('out', d));
@@ -71,7 +75,7 @@ function spawnChecked(command, args, { job, label, onLine } = {}) {
 
 async function ensureYtDlp() {
   if (exists(YTDLP) && (await fsp.stat(YTDLP)).size > 1000000) return;
-  const r = await fetch(YTDLP_URL, { redirect: 'follow', headers: { 'User-Agent': 'YT-AutoMix-PRO/3.0' } });
+  const r = await fetch(YTDLP_URL, { redirect: 'follow', headers: { 'User-Agent': `YT-AutoMix-PRO/${APP_VERSION}` } });
   if (!r.ok) throw new Error(`yt-dlp yuklab bo‘lmadi: HTTP ${r.status}`);
   const buf = Buffer.from(await r.arrayBuffer());
   if (buf.length < 1000000) throw new Error('yt-dlp yuklamasi noto‘g‘ri.');
@@ -86,6 +90,12 @@ function isYouTubeUrl(s) {
     return ['youtube.com','m.youtube.com','music.youtube.com','youtu.be'].includes(h);
   } catch { return false; }
 }
+function isPlaylistUrl(s) {
+  try {
+    const u = new URL(String(s).trim());
+    return u.pathname.toLowerCase().includes('/playlist') && !!u.searchParams.get('list');
+  } catch { return false; }
+}
 function normalizeLinks(input) {
   const arr = Array.isArray(input) ? input : String(input || '').split(/\r?\n/);
   const out = [], seen = new Set();
@@ -97,6 +107,46 @@ function normalizeLinks(input) {
   }
   return out;
 }
+async function expandPlaylist(j, playlistUrl, index, totalInputs) {
+  j.message = `Playlist ${index+1}/${totalInputs}: videolar ro‘yxati olinmoqda…`;
+  const { stdout } = await spawnChecked(YTDLP, [
+    '--flat-playlist','--ignore-errors','--no-warnings','--print','%(id)s', playlistUrl
+  ], { job:j, label:'Playlist reader' });
+  const ids = [];
+  const seen = new Set();
+  for (const line of stdout.split(/\r?\n/)) {
+    const id = line.trim();
+    if (!/^[A-Za-z0-9_-]{6,20}$/.test(id) || seen.has(id)) continue;
+    seen.add(id); ids.push(id);
+    if (ids.length >= 5000) break;
+  }
+  if (!ids.length) throw new Error('Playlist ichidan video topilmadi. Playlist public ekanini tekshiring.');
+  return ids.map(id => `https://www.youtube.com/watch?v=${id}`);
+}
+async function expandYouTubeInputs(j, inputs) {
+  const out = [], seen = new Set();
+  let playlistCount = 0, playlistVideoCount = 0;
+  for (let i=0;i<inputs.length;i++) {
+    if (j.cancelRequested) throw new Error('Jarayon to‘xtatildi.');
+    const url = inputs[i];
+    if (isPlaylistUrl(url)) {
+      playlistCount++;
+      const items = await expandPlaylist(j, url, i, inputs.length);
+      for (const item of items) {
+        if (seen.has(item)) continue;
+        seen.add(item); out.push(item); playlistVideoCount++;
+        if (out.length >= 5000) break;
+      }
+    } else if (!seen.has(url)) {
+      seen.add(url); out.push(url);
+    }
+    if (out.length >= 5000) break;
+  }
+  j.playlistCount = playlistCount;
+  j.playlistVideoCount = playlistVideoCount;
+  return out;
+}
+
 async function listFiles(folder, exts) {
   const dir = abs(folder);
   const items = await fsp.readdir(dir, { withFileTypes: true });
@@ -114,11 +164,9 @@ async function duration(file, job) {
   }
   throw new Error('Media davomiyligi aniqlanmadi.');
 }
-
 function chooseLen(settings) {
   if (settings.durationMode === 'exact') return settings.exactSeconds;
-  const min = settings.minSeconds, max = settings.maxSeconds;
-  return min + Math.floor(Math.random() * (max - min + 1));
+  return settings.minSeconds + Math.floor(Math.random() * (settings.maxSeconds - settings.minSeconds + 1));
 }
 function stopClips(j) {
   const c = j.limits.clipCount > 0 && j.clips >= j.limits.clipCount;
@@ -134,7 +182,7 @@ async function downloadSource(j, url, idx, needAudio, audioOnly = false) {
   const args = ['--no-playlist','--newline','--no-part','--restrict-filenames','--js-runtimes',`node:${process.execPath}`,'--remote-components','ejs:github','--ffmpeg-location',path.dirname(ffmpegPath),'-f',fmt];
   if (needAudio && !audioOnly) args.push('--merge-output-format','mkv');
   args.push('-o',templ,url);
-  j.message = `${idx+1}/${j.totalSources}: YouTube yuklanmoqda…`;
+  j.message = `${idx+1}/${j.totalSources}: YouTube video yuklanmoqda…`;
   await spawnChecked(YTDLP, args, { job: j, label: 'yt-dlp', onLine: line => {
     const m = line.match(/\[download\]\s+(\d+(?:\.\d+)?)%/);
     if (m) j.message = `${idx+1}/${j.totalSources}: yuklanmoqda ${m[1]}%`;
@@ -156,8 +204,7 @@ async function extractAudio(j, src, sourceIndex, sourceLabel) {
   else codecArgs = ['-c:a','pcm_s16le'];
   await spawnChecked(ffmpegPath, ['-hide_banner','-loglevel','error','-y','-i',src,'-vn',...codecArgs,out], { job: j, label: 'Audio extract' });
   const st = await fsp.stat(out);
-  j.audioFiles++;
-  j.audioBytes += st.size;
+  j.audioFiles++; j.audioBytes += st.size;
   j.lastAudio = { name: path.basename(out), mb: mb(st.size) };
   j.createdAudio.push(out);
   return out;
@@ -184,14 +231,18 @@ async function zipSelected(files, outPath) {
 
 async function processCutter(j) {
   let sources = [];
-  if (j.settings.sourceMode === 'youtube') sources = j.links.map(x => ({ kind:'youtube', value:x, label:x }));
-  else {
+  if (j.settings.sourceMode === 'youtube') {
+    j.message = 'YouTube linklar tekshirilmoqda…';
+    const expanded = await expandYouTubeInputs(j, j.links);
+    sources = expanded.map(x => ({ kind:'youtube', value:x, label:x }));
+  } else {
     const files = await listFiles(j.paths.input, VIDEO_EXT);
     sources = files.map(x => ({ kind:'local', value:x, label:path.basename(x) }));
   }
   if (!sources.length) throw new Error('Manbada video topilmadi.');
   j.totalSources = sources.length;
   const needAudio = j.settings.audioFormat !== 'off';
+
   for (let i=0; i<sources.length; i++) {
     if (j.cancelRequested) break;
     const srcInfo = sources[i];
@@ -200,8 +251,11 @@ async function processCutter(j) {
     let srcPath = null, temp = false;
     j.currentIndex = i+1; j.currentSource = srcInfo.label;
     try {
-      if (srcInfo.kind === 'youtube') { srcPath = await downloadSource(j, srcInfo.value, i, needAudio, clipLimitReached && needAudio && j.settings.audioAllSources); temp = true; }
-      else srcPath = srcInfo.value;
+      if (srcInfo.kind === 'youtube') {
+        srcPath = await downloadSource(j, srcInfo.value, i, needAudio, clipLimitReached && needAudio && j.settings.audioAllSources);
+        temp = true;
+      } else srcPath = srcInfo.value;
+
       const label = path.basename(srcPath);
       if (needAudio) {
         j.message = `${i+1}/${sources.length}: audio ajratilmoqda…`;
@@ -273,6 +327,7 @@ async function processMix(j) {
   const height = j.settings.orientation === '9:16' ? 1920 : 1080;
   const cacheDir = path.join(j.dir, 'norm'); await fsp.mkdir(cacheDir, { recursive:true });
   const cacheMap = new Map(); let previousSignature = '';
+
   for (let i=0;i<audios.length;i++) {
     if (j.cancelRequested) break;
     const audio = audios[i]; j.currentIndex = i+1; j.currentSource = path.basename(audio);
@@ -321,7 +376,9 @@ function publicJob(j) {
     id:j.id,type:j.type,status:j.status,createdAt:j.createdAt,startedAt:j.startedAt,finishedAt:j.finishedAt,
     message:j.message,currentIndex:j.currentIndex,currentSource:j.currentSource,queuePosition:j.status==='queued'?Math.max(1,queue.indexOf(j.id)+1):0,
     errors:j.errors.slice(-30),cancelRequested:j.cancelRequested,
-    totalSources:j.totalSources||0,completedSources:j.completedSources||0,failedSources:j.failedSources||0,clips:j.clips||0,totalMB:mb(j.totalBytes||0),audioFiles:j.audioFiles||0,audioMB:mb(j.audioBytes||0),lastClip:j.lastClip||null,lastAudio:j.lastAudio||null,stoppedByLimit:!!j.stoppedByLimit,zipReady:!!(j.zipPath&&exists(j.zipPath)),
+    totalSources:j.totalSources||0,completedSources:j.completedSources||0,failedSources:j.failedSources||0,
+    playlistCount:j.playlistCount||0,playlistVideoCount:j.playlistVideoCount||0,
+    clips:j.clips||0,totalMB:mb(j.totalBytes||0),audioFiles:j.audioFiles||0,audioMB:mb(j.audioBytes||0),lastClip:j.lastClip||null,lastAudio:j.lastAudio||null,stoppedByLimit:!!j.stoppedByLimit,zipReady:!!(j.zipPath&&exists(j.zipPath)),
     totalMixes:j.totalMixes||0,completedMixes:j.completedMixes||0,failedMixes:j.failedMixes||0,mixMB:mb(j.mixBytes||0),lastMix:j.lastMix||null,
     paths:j.paths
   };
@@ -332,7 +389,11 @@ async function runJob(j) {
   try {
     if (j.type === 'cutter') await processCutter(j); else await processMix(j);
     if (j.cancelRequested) { j.status='cancelled'; j.message='Jarayon to‘xtatildi.'; }
-    else { j.status='done'; j.message = j.type==='cutter' ? 'Kesish va audio ajratish yakunlandi.' : 'AutoMix yakunlandi.'; }
+    else {
+      j.status='done';
+      if (j.type==='cutter' && j.playlistCount) j.message = `Tayyor. ${j.playlistCount} playlistdan ${j.playlistVideoCount} video olindi.`;
+      else j.message = j.type==='cutter' ? 'Kesish va audio ajratish yakunlandi.' : 'AutoMix yakunlandi.';
+    }
   } catch (e) {
     j.status = j.cancelRequested ? 'cancelled' : 'failed'; j.message = errText(e);
     if (!j.cancelRequested) j.errors.push({ source:j.currentSource||'', message:errText(e), at:nowIso() });
@@ -344,13 +405,12 @@ function runNext() {
   if (!j || j.cancelRequested) return runNext();
   activeJobId=id; runJob(j);
 }
-
 function baseJob(type, paths) {
   const id=crypto.randomUUID(), dir=path.join(ROOT,id); fs.mkdirSync(dir,{recursive:true}); fs.mkdirSync(path.join(dir,'temp'),{recursive:true});
   return { id,type,dir,tempDir:path.join(dir,'temp'),paths,status:'queued',createdAt:nowIso(),startedAt:null,finishedAt:null,message:'Navbatga qo‘shildi…',currentIndex:0,currentSource:null,errors:[],child:null,cancelRequested:false };
 }
 
-app.get('/api/health', async (_req,res)=>res.json({ ok:!!ffmpegPath&&exists(ffmpegPath)&&exists(YTDLP), ffmpeg:!!ffmpegPath, ytdlp:exists(YTDLP), node:process.version, activeJobId, queued:queue.length, defaults:DEFAULTS }));
+app.get('/api/health', (_req,res)=>res.json({ version:APP_VERSION, ok:!!ffmpegPath&&exists(ffmpegPath)&&exists(YTDLP), ffmpeg:!!ffmpegPath, ytdlp:exists(YTDLP), node:process.version, activeJobId, queued:queue.length, defaults:DEFAULTS }));
 app.get('/api/default-paths',(_req,res)=>res.json(DEFAULTS));
 
 app.post('/api/pick-folder', async (req,res)=>{
@@ -372,14 +432,14 @@ app.post('/api/jobs/cutter', limiter, async (req,res)=>{
   const sourceMode=req.body?.sourceMode==='local'?'local':'youtube';
   const links=sourceMode==='youtube'?normalizeLinks(req.body?.links):[];
   const input=abs(req.body?.inputPath||DEFAULTS.input), clips=await ensureDir(req.body?.clipsPath||DEFAULTS.clips), audio=await ensureDir(req.body?.audioPath||DEFAULTS.audio);
-  if(sourceMode==='youtube'&&!links.length)return res.status(400).json({error:'Kamida 1 ta to‘g‘ri YouTube link kiriting.'});
+  if(sourceMode==='youtube'&&!links.length)return res.status(400).json({error:'Kamida 1 ta to‘g‘ri YouTube video yoki playlist link kiriting.'});
   if(sourceMode==='local'&&!exists(input))return res.status(400).json({error:'Input papka topilmadi.'});
   const durationMode=req.body?.durationMode==='exact'?'exact':'random';
   const exactSeconds=Math.max(3,Math.min(7,Number(req.body?.exactSeconds||4)));
   let minSeconds=Math.max(3,Math.min(7,Number(req.body?.minSeconds||3))), maxSeconds=Math.max(3,Math.min(7,Number(req.body?.maxSeconds||7))); if(minSeconds>maxSeconds)[minSeconds,maxSeconds]=[maxSeconds,minSeconds];
   const settings={sourceMode,durationMode,exactSeconds,minSeconds,maxSeconds,maxHeight:[480,720,1080,1440,2160].includes(Number(req.body?.maxHeight))?Number(req.body.maxHeight):1080,orientation:['source','16:9','9:16'].includes(req.body?.orientation)?req.body.orientation:'source',preset:['ultrafast','superfast','veryfast','faster','fast'].includes(req.body?.preset)?req.body.preset:'veryfast',crf:Math.max(18,Math.min(32,Number(req.body?.crf||23))),audioFormat:['off','mp3','m4a','wav'].includes(req.body?.audioFormat)?req.body.audioFormat:'mp3',audioAllSources:req.body?.audioAllSources!==false,makeZip:!!req.body?.makeZip};
   const limits={clipCount:Math.max(0,Math.min(20000,Number(req.body?.clipCount||0))),perSource:Math.max(0,Math.min(10000,Number(req.body?.perSource||0))),totalBytes:Math.max(0,Number(req.body?.totalMB||0))*1024*1024,stopMode:req.body?.stopMode==='both'?'both':'first'};
-  const j=baseJob('cutter',{input,clips,audio}); Object.assign(j,{links,settings,limits,totalSources:sourceMode==='youtube'?links.length:0,completedSources:0,failedSources:0,clips:0,totalBytes:0,audioFiles:0,audioBytes:0,lastClip:null,lastAudio:null,createdClips:[],createdAudio:[],zipPath:null,stoppedByLimit:false}); jobs.set(j.id,j);queue.push(j.id);runNext();res.status(202).json({job:publicJob(j)});
+  const j=baseJob('cutter',{input,clips,audio}); Object.assign(j,{links,settings,limits,inputLinksCount:links.length,totalSources:sourceMode==='youtube'?links.length:0,playlistCount:0,playlistVideoCount:0,completedSources:0,failedSources:0,clips:0,totalBytes:0,audioFiles:0,audioBytes:0,lastClip:null,lastAudio:null,createdClips:[],createdAudio:[],zipPath:null,stoppedByLimit:false}); jobs.set(j.id,j);queue.push(j.id);runNext();res.status(202).json({job:publicJob(j)});
 });
 
 app.post('/api/jobs/mix', limiter, async (req,res)=>{
@@ -396,4 +456,4 @@ app.get('*',(_req,res)=>res.sendFile(path.join(__dirname,'public','index.html'))
 
 setInterval(async()=>{const t=Date.now();for(const[id,j]of jobs){const ref=new Date(j.finishedAt||j.createdAt).getTime();if(['queued','running'].includes(j.status)||t-ref<6*60*60*1000)continue;jobs.delete(id);await fsp.rm(j.dir,{recursive:true,force:true}).catch(()=>{});}},10*60*1000).unref();
 
-(async()=>{try{await ensureYtDlp();app.listen(PORT,'127.0.0.1',()=>console.log(`YT Video + AutoMix PRO v3: http://localhost:${PORT}`));}catch(e){console.error('START XATOSI:',errText(e));process.exit(1);}})();
+(async()=>{try{await ensureYtDlp();app.listen(PORT,'127.0.0.1',()=>console.log(`YT Video + AutoMix PRO v${APP_VERSION}: http://localhost:${PORT}`));}catch(e){console.error('START XATOSI:',errText(e));process.exit(1);}})();
