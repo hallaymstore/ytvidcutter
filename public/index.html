@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#08111e">
-  <title>YT Video Cutter PRO</title>
-  <meta name="description" content="Ko‘p YouTube linkni 5/6/7 soniyali ovozsiz MP4 kliplarga kesish va ZIP qilish uchun lokal PC dastur.">
+  <title>YT Video + AutoMix PRO v3</title>
+  <meta name="description" content="Local PC video cutter, audio extractor and AutoMix tool.">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -13,115 +13,123 @@
   <header class="topbar">
     <div>
       <div class="eyebrow">HALLAYM LOCAL TOOL</div>
-      <h1>YT Video Cutter PRO</h1>
-      <p>1–500 YouTube link → 5/6/7 soniyali NO SOUND kliplar → ZIP</p>
+      <h1>YT Video + AutoMix PRO <span>v3</span></h1>
+      <p>YouTube / lokal video → 3–7s kliplar + alohida audio → AutoMix.</p>
     </div>
     <div class="health" id="health"><span></span> Tekshirilmoqda…</div>
   </header>
 
-  <section class="grid">
-    <article class="card input-card">
-      <div class="card-head">
-        <div><b>1. YouTube linklar</b><small>Har bir linkni yangi qatorga yozing. 1 ta ham, 100+ ta ham bo‘ladi.</small></div>
-        <span class="pill" id="linkCount">0 LINK</span>
-      </div>
-      <textarea id="links" spellcheck="false" placeholder="https://www.youtube.com/watch?v=...
-https://youtu.be/...
-https://www.youtube.com/shorts/..."></textarea>
-      <div class="input-meta">
-        <span>Enter / Shift+Enter — yangi qator</span>
-        <span>Ctrl+Enter — boshlash</span>
-      </div>
-      <div class="quick-actions">
-        <button class="ghost" id="cleanBtn" type="button">Linklarni tozalash</button>
-        <button class="ghost" id="demoBtn" type="button">Dublikatlarni olib tashlash</button>
-      </div>
-    </article>
+  <nav class="tabs">
+    <button class="tab active" data-tab="cutter">✂ Cutter + Audio</button>
+    <button class="tab" data-tab="automix">🎬 AutoMix Studio</button>
+    <button class="tab" data-tab="status">📊 Jarayon</button>
+  </nav>
 
-    <aside class="card settings-card">
-      <div class="card-head">
-        <div><b>2. Kesish sozlamalari</b><small>Ovoz avtomatik olib tashlanadi.</small></div>
-        <span class="pill">NO SOUND</span>
-      </div>
+  <section class="tabpage active" id="tab-cutter">
+    <div class="grid">
+      <article class="card">
+        <div class="card-head"><div><b>1. Manba</b><small>YouTube linklar yoki kompyuterdagi papka.</small></div><span class="pill" id="sourceBadge">YOUTUBE</span></div>
+        <div class="segmented">
+          <button class="seg active" data-source="youtube">YouTube linklar</button>
+          <button class="seg" data-source="local">Lokal papka</button>
+        </div>
+        <div id="youtubeSource">
+          <textarea id="links" spellcheck="false" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...&#10;https://music.youtube.com/watch?v=..."></textarea>
+          <div class="rowmeta"><span id="linkCount">0 LINK</span><span>Ctrl+Enter — boshlash</span></div>
+          <div class="quick-actions"><button class="ghost" id="dedupeBtn">Dublikatlarni olib tashlash</button><button class="ghost" id="clearBtn">Tozalash</button></div>
+        </div>
+        <div id="localSource" class="hidden">
+          <label class="path-label"><span>Video manba papkasi</span><div class="path-row"><input id="inputPath"><button class="browse" data-pick="inputPath">📁 Tanlash</button></div></label>
+          <p class="hint">MP4, MOV, MKV, WEBM, AVI, M4V fayllari to‘g‘ridan-to‘g‘ri shu papkadan o‘qiladi — browser upload qilmaydi.</p>
+        </div>
+      </article>
 
-      <div class="field-row three">
-        <label><span>Klip uzunligi</span>
-          <select id="segmentMode">
-            <option value="mixed" selected>Aralash 5–7s</option>
-            <option value="5">5 soniya</option>
-            <option value="6">6 soniya</option>
-            <option value="7">7 soniya</option>
-          </select>
-        </label>
-        <label><span>Video sifati</span>
-          <select id="maxHeight">
-            <option value="480">480p</option>
-            <option value="720">720p</option>
-            <option value="1080" selected>1080p</option>
-            <option value="1440">1440p</option>
-            <option value="2160">2160p</option>
-          </select>
-        </label>
-        <label><span>Kesish tezligi</span>
-          <select id="preset">
-            <option value="ultrafast">Eng tez</option>
-            <option value="superfast">Juda tez</option>
-            <option value="veryfast" selected>Tez / balans</option>
-            <option value="faster">Sifatliroq</option>
-            <option value="fast">Sifatli</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="field-row three">
-        <label><span>Klip miqdori limiti</span><input id="clipCount" type="number" min="0" value="0" placeholder="0 = limitsiz"></label>
-        <label><span>Jami hajm limiti (MB)</span><input id="totalMB" type="number" min="0" step="10" value="0" placeholder="0 = limitsiz"></label>
-        <label><span>To‘xtash qoidasi</span>
-          <select id="stopMode">
-            <option value="first" selected>Birinchi limitga yetganda</option>
-            <option value="both">Ikkala limit bajarilganda</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="field-row one compact">
-        <label><span>CRF sifat (18–32)</span><input id="crf" type="number" min="18" max="32" value="23"></label>
-      </div>
-
-      <p class="hint">Masalan: <b>300 ta klip</b> yoki <b>1500 MB</b>. Har bir tayyor klipdan keyin real hajm hisoblanadi va kerakli limitga yetganda qolgan linklar ochilmaydi.</p>
-      <button class="primary" id="startBtn" type="button">▶ Yuklash va kesishni boshlash</button>
-    </aside>
-  </section>
-
-  <section class="card status-card hidden" id="statusCard">
-    <div class="status-top">
-      <div>
-        <div class="eyebrow">JARAYON</div>
-        <h2 id="statusTitle">Tayyorlanmoqda…</h2>
-        <p id="statusMessage"></p>
-      </div>
-      <div class="actions">
-        <button id="cancelBtn" class="danger" type="button">■ To‘xtatish</button>
-        <a id="downloadBtn" class="download hidden" href="#">⬇ ZIP yuklab olish</a>
-      </div>
+      <aside class="card">
+        <div class="card-head"><div><b>2. Klip uzunligi</b><small>Aniq soniya yoki 3–7 soniya oralig‘i.</small></div><span class="pill green">3–7 SEC</span></div>
+        <div class="segmented small"><button class="seg active" data-duration="random">Oraliq / random</button><button class="seg" data-duration="exact">Aniq soniya</button></div>
+        <div id="randomDuration" class="field-row two">
+          <label><span>Minimum</span><select id="minSeconds"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
+          <label><span>Maksimum</span><select id="maxSeconds"><option>3</option><option>4</option><option>5</option><option>6</option><option selected>7</option></select></label>
+        </div>
+        <div id="exactDuration" class="field-row one hidden">
+          <label><span>Aniq klip uzunligi</span><select id="exactSeconds"><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option></select></label>
+        </div>
+        <div class="divider"></div>
+        <div class="field-row three">
+          <label><span>Jami klip soni</span><input id="clipCount" type="number" min="0" value="0" placeholder="0 = limitsiz"></label>
+          <label><span>Har manbadan max</span><input id="perSource" type="number" min="0" value="0" placeholder="0 = hammasi"></label>
+          <label><span>Jami hajm MB</span><input id="totalMB" type="number" min="0" value="0" placeholder="0 = limitsiz"></label>
+        </div>
+        <div class="field-row three topgap">
+          <label><span>To‘xtash qoidasi</span><select id="stopMode"><option value="first">Birinchi limitda</option><option value="both">Ikkalasi bajarilganda</option></select></label>
+          <label><span>Video sifati</span><select id="maxHeight"><option>480</option><option>720</option><option selected>1080</option><option>1440</option><option>2160</option></select></label>
+          <label><span>Kadr formati</span><select id="orientation"><option value="source">Manba kabi</option><option value="16:9">16:9</option><option value="9:16">9:16</option></select></label>
+        </div>
+      </aside>
     </div>
 
-    <div class="progress"><i id="progressBar"></i></div>
+    <div class="grid lower">
+      <article class="card">
+        <div class="card-head"><div><b>3. Natija papkalari</b><small>Klip va audio bevosita shu yo‘llarga yoziladi.</small></div><span class="pill">DIRECT PATH</span></div>
+        <label class="path-label"><span>🎞 Kliplar papkasi</span><div class="path-row"><input id="clipsPath"><button class="browse" data-pick="clipsPath">📁 Tanlash</button><button class="open" data-open="clipsPath">↗</button></div></label>
+        <label class="path-label"><span>🎵 Audio papkasi</span><div class="path-row"><input id="audioPath"><button class="browse" data-pick="audioPath">📁 Tanlash</button><button class="open" data-open="audioPath">↗</button></div></label>
+        <div class="field-row two topgap">
+          <label><span>Audio formati</span><select id="audioFormat"><option value="mp3" selected>MP3 320k</option><option value="m4a">M4A / AAC</option><option value="wav">WAV</option><option value="off">Audio ajratilmasin</option></select></label>
+          <label class="check"><input id="audioAllSources" type="checkbox" checked><span>Klip limiti tugasa ham qolgan manbalardan audioni yig‘ishda davom et</span></label>
+        </div>
+      </article>
 
-    <div class="stats">
-      <div><span>Kliplar</span><b id="clipsStat">0</b></div>
-      <div><span>Jami hajm</span><b id="sizeStat">0 MB</b></div>
-      <div><span>Videolar</span><b id="videosStat">0 / 0</b></div>
-      <div><span>Xatolar</span><b id="errorsStat">0</b></div>
+      <aside class="card">
+        <div class="card-head"><div><b>4. Ishlash</b><small>Kliplar har doim NO AUDIO.</small></div><span class="pill green">NO AUDIO CLIPS</span></div>
+        <div class="field-row three">
+          <label><span>Kesish tezligi</span><select id="preset"><option value="ultrafast">Eng tez</option><option value="superfast">Juda tez</option><option value="veryfast" selected>Tez / balans</option><option value="faster">Sifatliroq</option><option value="fast">Sifatli</option></select></label>
+          <label><span>CRF sifat</span><input id="crf" type="number" min="18" max="32" value="23"></label>
+          <label class="check"><input id="makeZip" type="checkbox"><span>Oxirida yangi kliplarni ZIP qil</span></label>
+        </div>
+        <div class="summary" id="cutterSummary">Random 3–7s · 1080p · MP3 · direct folders</div>
+        <button class="primary" id="startCutter">▶ Cutter + Audio ni boshlash</button>
+      </aside>
     </div>
-
-    <div class="lastclip" id="lastClip">Hali klip yo‘q.</div>
-    <details id="errorBox" class="errors hidden"><summary>Xatolar</summary><pre id="errorsText"></pre></details>
   </section>
 
-  <footer>Bu lokal dastur. Faqat o‘zingizga tegishli yoki qayta ishlashga ruxsatingiz bor videolardan foydalaning.</footer>
+  <section class="tabpage" id="tab-automix">
+    <div class="grid">
+      <article class="card">
+        <div class="card-head"><div><b>AutoMix manbalari</b><small>Cutter chiqargan papkalarni bevosita o‘qiydi.</small></div><span class="pill purple">AUTOMIX</span></div>
+        <label class="path-label"><span>🎞 Kliplar papkasi</span><div class="path-row"><input id="mixClipsPath"><button class="browse" data-pick="mixClipsPath">📁 Tanlash</button><button class="open" data-open="mixClipsPath">↗</button></div></label>
+        <label class="path-label"><span>🎵 Musiqalar papkasi</span><div class="path-row"><input id="mixAudioPath"><button class="browse" data-pick="mixAudioPath">📁 Tanlash</button><button class="open" data-open="mixAudioPath">↗</button></div></label>
+        <label class="path-label"><span>🎬 Tayyor videolar papkasi</span><div class="path-row"><input id="mixOutputPath"><button class="browse" data-pick="mixOutputPath">📁 Tanlash</button><button class="open" data-open="mixOutputPath">↗</button></div></label>
+      </article>
+      <aside class="card">
+        <div class="card-head"><div><b>AutoMix sozlamalari</b><small>Har audio uchun boshqa random klip tartibi.</small></div><span class="pill green">AUTO LENGTH</span></div>
+        <div class="field-row three">
+          <label><span>Format</span><select id="mixOrientation"><option value="16:9" selected>16:9 — 1080p</option><option value="9:16">9:16 — vertical</option></select></label>
+          <label><span>Max mix soni</span><input id="maxMixes" type="number" min="0" value="0" placeholder="0 = barcha audio"></label>
+          <label><span>Render tezligi</span><select id="mixPreset"><option value="ultrafast">Eng tez</option><option value="superfast">Juda tez</option><option value="veryfast" selected>Tez / balans</option><option value="faster">Sifatliroq</option></select></label>
+        </div>
+        <div class="field-row two topgap">
+          <label><span>CRF</span><input id="mixCrf" type="number" min="18" max="32" value="23"></label>
+          <label class="check"><input id="reuseClips" type="checkbox" checked><span>Kliplar yetmasa qayta ishlat, lekin yangi tartibda</span></label>
+        </div>
+        <div class="summary">Musiqa davomiyligi = tayyor video davomiyligi. Har trekda boshlanish tartibi qayta aralashtiriladi.</div>
+        <button class="primary purplebtn" id="startMix">🎬 AutoMix ni boshlash</button>
+      </aside>
+    </div>
+  </section>
+
+  <section class="tabpage" id="tab-status">
+    <section class="card status-card" id="statusCard">
+      <div class="status-top"><div><div class="eyebrow">JARAYON</div><h2 id="statusTitle">Hali ish boshlanmagan</h2><p id="statusMessage">Cutter yoki AutoMix bo‘limidan boshlang.</p></div><div class="actions"><button id="cancelBtn" class="danger hidden">■ To‘xtatish</button><a id="downloadBtn" class="download hidden" href="#">⬇ ZIP</a></div></div>
+      <div class="progress"><i id="progressBar"></i></div>
+      <div class="stats six">
+        <div><span>Kliplar</span><b id="clipsStat">0</b></div><div><span>Klip hajmi</span><b id="sizeStat">0 MB</b></div><div><span>Audio</span><b id="audioStat">0</b></div><div><span>Audio hajmi</span><b id="audioSizeStat">0 MB</b></div><div><span>Mixlar</span><b id="mixStat">0</b></div><div><span>Mix hajmi</span><b id="mixSizeStat">0 MB</b></div>
+      </div>
+      <div class="lastclip" id="lastInfo">Hali natija yo‘q.</div>
+      <details id="errorBox" class="errors hidden"><summary>Xatolar</summary><pre id="errorsText"></pre></details>
+    </section>
+  </section>
+
+  <footer>Mahalliy PC dastur. Faqat o‘zingizga tegishli yoki qayta ishlash/yuklab olishga ruxsatingiz bo‘lgan media bilan foydalaning.</footer>
 </main>
 <script src="/app.js" defer></script>
 </body>
