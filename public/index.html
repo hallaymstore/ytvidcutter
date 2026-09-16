@@ -4,17 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#08111e">
-  <title>YT Video + AutoMix PRO v3</title>
-  <meta name="description" content="Local PC video cutter, audio extractor and AutoMix tool.">
-  <link rel="stylesheet" href="/styles.css">
+  <title>YT Video + AutoMix PRO v3.1</title>
+  <meta name="description" content="Local PC YouTube playlist/video cutter, audio extractor and AutoMix tool.">
+  <link rel="stylesheet" href="/styles.css?v=3.1.0">
 </head>
 <body>
 <main class="shell">
   <header class="topbar">
     <div>
       <div class="eyebrow">HALLAYM LOCAL TOOL</div>
-      <h1>YT Video + AutoMix PRO <span>v3</span></h1>
-      <p>YouTube / lokal video → 3–7s kliplar + alohida audio → AutoMix.</p>
+      <h1>YT Video + AutoMix PRO <span>v3.1</span></h1>
+      <p>YouTube video/playlist / lokal video → 3–7s kliplar + alohida audio → AutoMix.</p>
     </div>
     <div class="health" id="health"><span></span> Tekshirilmoqda…</div>
   </header>
@@ -28,14 +28,14 @@
   <section class="tabpage active" id="tab-cutter">
     <div class="grid">
       <article class="card">
-        <div class="card-head"><div><b>1. Manba</b><small>YouTube linklar yoki kompyuterdagi papka.</small></div><span class="pill" id="sourceBadge">YOUTUBE</span></div>
+        <div class="card-head"><div><b>1. Manba</b><small>YouTube video, playlist yoki kompyuterdagi papka.</small></div><span class="pill" id="sourceBadge">YOUTUBE / PLAYLIST</span></div>
         <div class="segmented">
-          <button class="seg active" data-source="youtube">YouTube linklar</button>
+          <button class="seg active" data-source="youtube">YouTube / Playlist</button>
           <button class="seg" data-source="local">Lokal papka</button>
         </div>
         <div id="youtubeSource">
-          <textarea id="links" spellcheck="false" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...&#10;https://music.youtube.com/watch?v=..."></textarea>
-          <div class="rowmeta"><span id="linkCount">0 LINK</span><span>Ctrl+Enter — boshlash</span></div>
+          <textarea id="links" spellcheck="false" placeholder="https://www.youtube.com/playlist?list=...&#10;https://www.youtube.com/watch?v=...&#10;https://youtu.be/..."></textarea>
+          <div class="rowmeta"><span id="linkCount">0 INPUT</span><span>Playlist ichidagi videolar avtomatik olinadi · Ctrl+Enter — boshlash</span></div>
           <div class="quick-actions"><button class="ghost" id="dedupeBtn">Dublikatlarni olib tashlash</button><button class="ghost" id="clearBtn">Tozalash</button></div>
         </div>
         <div id="localSource" class="hidden">
@@ -86,7 +86,7 @@
           <label><span>CRF sifat</span><input id="crf" type="number" min="18" max="32" value="23"></label>
           <label class="check"><input id="makeZip" type="checkbox"><span>Oxirida yangi kliplarni ZIP qil</span></label>
         </div>
-        <div class="summary" id="cutterSummary">Random 3–7s · 1080p · MP3 · direct folders</div>
+        <div class="summary" id="cutterSummary">Random 3–7s · 1080p · MP3 · playlist auto · direct folders</div>
         <button class="primary" id="startCutter">▶ Cutter + Audio ni boshlash</button>
       </aside>
     </div>
@@ -131,6 +131,6 @@
 
   <footer>Mahalliy PC dastur. Faqat o‘zingizga tegishli yoki qayta ishlash/yuklab olishga ruxsatingiz bo‘lgan media bilan foydalaning.</footer>
 </main>
-<script src="/app.js" defer></script>
+<script src="/app.js?v=3.1.0" defer></script>
 </body>
 </html>
