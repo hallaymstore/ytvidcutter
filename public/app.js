@@ -1,90 +1,35 @@
-const $=s=>document.querySelector(s);
-const linksEl=$('#links'),start=$('#startBtn'),card=$('#statusCard');
-let jobId=localStorage.getItem('ytvc_job')||null,pollTimer=null;
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let sourceMode='youtube', durationMode='random', jobId=localStorage.getItem('ytauto_job')||null, pollTimer=null, defaults={};
 
-function parseLinks(){
-  const seen=new Set(),out=[];
-  for(const raw of linksEl.value.split(/\r?\n/)){
-    const s=raw.trim();
-    if(!s||seen.has(s)) continue;
-    if(/^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(s)){seen.add(s);out.push(s);}
-  }
-  return out.slice(0,500);
-}
-function countLinks(){ $('#linkCount').textContent=`${parseLinks().length} LINK`; }
-function cleanDuplicates(){ linksEl.value=parseLinks().join('\n'); countLinks(); }
+async function api(url,opt){const r=await fetch(url,opt),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);return d;}
+function parseLinks(){const seen=new Set(),out=[];for(const raw of $('#links').value.split(/\r?\n/)){const s=raw.trim();if(!s||seen.has(s))continue;if(/^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be|music\.youtube\.com)\//i.test(s)){seen.add(s);out.push(s)}}return out.slice(0,1000)}
+function updateLinkCount(){$('#linkCount').textContent=`${parseLinks().length} LINK`}
+function dedupe(){$('#links').value=parseLinks().join('\n');updateLinkCount()}
+function showTab(name){$$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));$$('.tabpage').forEach(p=>p.classList.toggle('active',p.id===`tab-${name}`))}
+function updateSummary(){const dur=durationMode==='exact'?`${$('#exactSeconds').value}s aniq`:`${$('#minSeconds').value}–${$('#maxSeconds').value}s random`;$('#cutterSummary').textContent=`${dur} · ${$('#maxHeight').value}p · ${$('#audioFormat').value.toUpperCase()} · direct folders`}
 
-async function api(url,opt){
-  const r=await fetch(url,opt),d=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(d.error||`HTTP ${r.status}`);
-  return d;
-}
-async function health(){
-  try{
-    const d=await api('/api/health');
-    const e=$('#health'); e.classList.toggle('ok',d.ok);
-    e.innerHTML=`<span></span>${d.ok?'Tayyor':'Komponent xatosi'} · yt-dlp ${d.ytdlp?'✓':'×'} · FFmpeg ${d.ffmpeg?'✓':'×'}`;
-  }catch{ $('#health').innerHTML='<span></span>Server bilan aloqa yo‘q'; }
-}
-function payload(){
-  return {
-    links:parseLinks(),
-    segmentMode:$('#segmentMode').value,
-    maxHeight:Number($('#maxHeight').value),
-    preset:$('#preset').value,
-    crf:Number($('#crf').value||23),
-    clipCount:Number($('#clipCount').value||0),
-    totalMB:Number($('#totalMB').value||0),
-    stopMode:$('#stopMode').value
-  };
-}
-async function run(){
-  const links=parseLinks();
-  if(!links.length) return alert('Kamida 1 ta to‘g‘ri YouTube link kiriting.');
-  start.disabled=true; start.textContent='Navbatga qo‘shilmoqda…'; card.classList.remove('hidden');
-  try{
-    const d=await api('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});
-    jobId=d.job.id; localStorage.setItem('ytvc_job',jobId); render(d.job); beginPoll();
-  }catch(e){ alert(e.message); }
-  finally{ start.disabled=false; start.textContent='▶ Yuklash va kesishni boshlash'; }
-}
-function title(s){return{queued:'Navbatda',running:'Ishlanmoqda',done:'Tayyor',failed:'Xato',cancelled:'To‘xtatildi'}[s]||s;}
-function render(j){
-  card.classList.remove('hidden');
-  $('#statusTitle').textContent=`${title(j.status)}${j.status==='queued'&&j.queuePosition?` · #${j.queuePosition}`:''}`;
-  $('#statusMessage').textContent=j.message||'';
-  $('#clipsStat').textContent=Number(j.clips||0).toLocaleString();
-  $('#sizeStat').textContent=`${Number(j.totalMB||0).toLocaleString(undefined,{maximumFractionDigits:2})} MB`;
-  $('#videosStat').textContent=`${j.completedVideos+j.failedVideos} / ${j.totalLinks}`;
-  $('#errorsStat').textContent=j.failedVideos||0;
-  let p=(j.completedVideos+j.failedVideos)/Math.max(1,j.totalLinks)*100;
-  if(j.status==='done') p=100;
-  $('#progressBar').style.width=`${Math.min(100,p)}%`;
-  $('#lastClip').textContent=j.lastClip?`Oxirgi: ${j.lastClip.name} · ${j.lastClip.seconds}s · ${j.lastClip.mb} MB`:'Hali klip yo‘q.';
-  $('#cancelBtn').classList.toggle('hidden',!['queued','running'].includes(j.status));
-  const dl=$('#downloadBtn');
-  if(j.zipReady){dl.classList.remove('hidden');dl.href=`/api/jobs/${j.id}/download`;} else dl.classList.add('hidden');
-  if(j.errors?.length){
-    $('#errorBox').classList.remove('hidden');
-    $('#errorsText').textContent=j.errors.map((e,i)=>`${i+1}. ${e.url||''}\n${e.message}`).join('\n\n');
-  }else $('#errorBox').classList.add('hidden');
-  if(['done','failed','cancelled'].includes(j.status)&&pollTimer){clearInterval(pollTimer);pollTimer=null;}
-}
-async function poll(){
-  if(!jobId)return;
-  try{ const d=await api(`/api/jobs/${jobId}`); render(d.job); }
-  catch{ if(pollTimer)clearInterval(pollTimer);pollTimer=null;localStorage.removeItem('ytvc_job'); }
-}
-function beginPoll(){ if(pollTimer)clearInterval(pollTimer); poll(); pollTimer=setInterval(poll,1000); }
+async function health(){try{const d=await api('/api/health');defaults=d.defaults||{};const e=$('#health');e.classList.toggle('ok',d.ok);e.innerHTML=`<span></span>${d.ok?'Tayyor':'Komponent xatosi'} · yt-dlp ${d.ytdlp?'✓':'×'} · FFmpeg ${d.ffmpeg?'✓':'×'}`;}catch{$('#health').innerHTML='<span></span>Server bilan aloqa yo‘q'}}
+async function loadDefaults(){const d=await api('/api/default-paths');defaults=d;$('#inputPath').value=d.input;$('#clipsPath').value=d.clips;$('#audioPath').value=d.audio;$('#mixClipsPath').value=d.clips;$('#mixAudioPath').value=d.audio;$('#mixOutputPath').value=d.mixes;}
+async function pick(inputId){try{const current=$(`#${inputId}`).value;const d=await api('/api/pick-folder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current})});$(`#${inputId}`).value=d.path;}catch(e){alert(e.message)}}
+async function openFolder(inputId){try{await api('/api/open-folder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:$(`#${inputId}`).value})});}catch(e){alert(e.message)}}
 
-linksEl.addEventListener('input',countLinks);
-linksEl.addEventListener('keydown',e=>{ if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();run();} });
-$('#cleanBtn').onclick=()=>{linksEl.value='';countLinks();};
-$('#demoBtn').onclick=cleanDuplicates;
-start.onclick=run;
-$('#cancelBtn').onclick=async()=>{
-  if(!jobId||!confirm('Jarayonni to‘xtataymi?'))return;
-  try{const d=await api(`/api/jobs/${jobId}/cancel`,{method:'POST'});render(d.job);}catch(e){alert(e.message);}
-};
-health(); setInterval(health,15000); countLinks();
-if(jobId){card.classList.remove('hidden');beginPoll();}
+function cutterPayload(){return{sourceMode,links:parseLinks(),inputPath:$('#inputPath').value,clipsPath:$('#clipsPath').value,audioPath:$('#audioPath').value,durationMode,exactSeconds:Number($('#exactSeconds').value),minSeconds:Number($('#minSeconds').value),maxSeconds:Number($('#maxSeconds').value),clipCount:Number($('#clipCount').value||0),perSource:Number($('#perSource').value||0),totalMB:Number($('#totalMB').value||0),stopMode:$('#stopMode').value,maxHeight:Number($('#maxHeight').value),orientation:$('#orientation').value,preset:$('#preset').value,crf:Number($('#crf').value||23),audioFormat:$('#audioFormat').value,audioAllSources:$('#audioAllSources').checked,makeZip:$('#makeZip').checked}}
+function mixPayload(){return{clipsPath:$('#mixClipsPath').value,audioPath:$('#mixAudioPath').value,mixesPath:$('#mixOutputPath').value,orientation:$('#mixOrientation').value,maxMixes:Number($('#maxMixes').value||0),preset:$('#mixPreset').value,crf:Number($('#mixCrf').value||23),reuseClips:$('#reuseClips').checked}}
+
+async function startJob(url,payload,button){button.disabled=true;const old=button.textContent;button.textContent='Navbatga qo‘shilmoqda…';try{const d=await api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});jobId=d.job.id;localStorage.setItem('ytauto_job',jobId);render(d.job);showTab('status');beginPoll()}catch(e){alert(e.message)}finally{button.disabled=false;button.textContent=old}}
+function title(s,type){const x={queued:'Navbatda',running:'Ishlanmoqda',done:'Tayyor',failed:'Xato',cancelled:'To‘xtatildi'}[s]||s;return `${type==='mix'?'AutoMix':'Cutter'} · ${x}`}
+function render(j){$('#statusTitle').textContent=title(j.status,j.type);$('#statusMessage').textContent=j.message||'';$('#clipsStat').textContent=Number(j.clips||0).toLocaleString();$('#sizeStat').textContent=`${Number(j.totalMB||0).toLocaleString(undefined,{maximumFractionDigits:2})} MB`;$('#audioStat').textContent=Number(j.audioFiles||0).toLocaleString();$('#audioSizeStat').textContent=`${Number(j.audioMB||0).toLocaleString(undefined,{maximumFractionDigits:2})} MB`;$('#mixStat').textContent=`${j.completedMixes||0}${j.totalMixes?` / ${j.totalMixes}`:''}`;$('#mixSizeStat').textContent=`${Number(j.mixMB||0).toLocaleString(undefined,{maximumFractionDigits:2})} MB`;let p=0;if(j.type==='mix'&&j.totalMixes)p=(j.completedMixes+j.failedMixes)/j.totalMixes*100;else if(j.totalSources)p=(j.completedSources+j.failedSources)/j.totalSources*100;if(j.status==='done')p=100;$('#progressBar').style.width=`${Math.min(100,p)}%`;let last='';if(j.lastMix)last=`Oxirgi mix: ${j.lastMix.name} · ${j.lastMix.seconds}s · ${j.lastMix.mb} MB`;else if(j.lastClip||j.lastAudio)last=[j.lastClip?`Klip: ${j.lastClip.name} · ${j.lastClip.seconds}s · ${j.lastClip.mb} MB`:'',j.lastAudio?`Audio: ${j.lastAudio.name} · ${j.lastAudio.mb} MB`:''].filter(Boolean).join('  |  ');$('#lastInfo').textContent=last||'Hali natija yo‘q.';$('#cancelBtn').classList.toggle('hidden',!['queued','running'].includes(j.status));const dl=$('#downloadBtn');if(j.zipReady){dl.classList.remove('hidden');dl.href=`/api/jobs/${j.id}/download`}else dl.classList.add('hidden');if(j.errors?.length){$('#errorBox').classList.remove('hidden');$('#errorsText').textContent=j.errors.map((e,i)=>`${i+1}. ${e.source||''}\n${e.message}`).join('\n\n')}else $('#errorBox').classList.add('hidden');if(['done','failed','cancelled'].includes(j.status)&&pollTimer){clearInterval(pollTimer);pollTimer=null}}
+async function poll(){if(!jobId)return;try{const d=await api(`/api/jobs/${jobId}`);render(d.job)}catch{if(pollTimer)clearInterval(pollTimer);pollTimer=null;localStorage.removeItem('ytauto_job')}}
+function beginPoll(){if(pollTimer)clearInterval(pollTimer);poll();pollTimer=setInterval(poll,1000)}
+
+$$('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+$$('[data-source]').forEach(b=>b.onclick=()=>{sourceMode=b.dataset.source;$$('[data-source]').forEach(x=>x.classList.toggle('active',x===b));$('#youtubeSource').classList.toggle('hidden',sourceMode!=='youtube');$('#localSource').classList.toggle('hidden',sourceMode!=='local');$('#sourceBadge').textContent=sourceMode==='youtube'?'YOUTUBE':'LOCAL FOLDER'});
+$$('[data-duration]').forEach(b=>b.onclick=()=>{durationMode=b.dataset.duration;$$('[data-duration]').forEach(x=>x.classList.toggle('active',x===b));$('#randomDuration').classList.toggle('hidden',durationMode!=='random');$('#exactDuration').classList.toggle('hidden',durationMode!=='exact');updateSummary()});
+$$('[data-pick]').forEach(b=>b.onclick=()=>pick(b.dataset.pick));$$('[data-open]').forEach(b=>b.onclick=()=>openFolder(b.dataset.open));
+$('#links').addEventListener('input',updateLinkCount);$('#links').addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();$('#startCutter').click()}});$('#dedupeBtn').onclick=dedupe;$('#clearBtn').onclick=()=>{$('#links').value='';updateLinkCount()};
+['#minSeconds','#maxSeconds','#exactSeconds','#maxHeight','#audioFormat'].forEach(s=>$(s).addEventListener('change',updateSummary));
+$('#startCutter').onclick=()=>{if(sourceMode==='youtube'&&!parseLinks().length)return alert('Kamida 1 ta to‘g‘ri YouTube link kiriting.');startJob('/api/jobs/cutter',cutterPayload(),$('#startCutter'))};
+$('#startMix').onclick=()=>startJob('/api/jobs/mix',mixPayload(),$('#startMix'));
+$('#cancelBtn').onclick=async()=>{if(!jobId||!confirm('Jarayonni to‘xtataymi?'))return;try{const d=await api(`/api/jobs/${jobId}/cancel`,{method:'POST'});render(d.job)}catch(e){alert(e.message)}};
+
+(async()=>{await health();await loadDefaults();updateLinkCount();updateSummary();if(jobId){showTab('status');beginPoll()}setInterval(health,15000)})();
