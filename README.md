@@ -1,33 +1,36 @@
-# YT Video Cutter PRO v2.0 — Windows lokal
+# YT Video + AutoMix PRO v3
 
-YouTube linklarni ketma-ket yuklab, 5/6/7 soniyali **ovozsiz MP4** kliplarga kesadi. Har klipdan keyin real fayl hajmi hisoblanadi. Klip soni yoki jami MB limitiga yetganda avtomatik to‘xtaydi va yakunda bitta ZIP beradi.
+Windows PC uchun lokal video pipeline.
+
+## Bo‘limlar
+1. Cutter + Audio
+   - YouTube linklar yoki lokal papka
+   - 3–7 soniya random oralig‘i yoki aniq 3/4/5/6/7 soniya
+   - jami klip soni, har manbadan max klip, jami MB limit
+   - kliplar NO AUDIO
+   - audio alohida papkaga MP3 320k / M4A / WAV
+   - klip limiti tugasa ham audio yig‘ishni davom ettirish opsiyasi
+   - natijani to‘g‘ridan-to‘g‘ri Windows papkalariga yozish
+   - ixtiyoriy ZIP
+
+2. AutoMix Studio
+   - kliplar papkasi + musiqalar papkasi
+   - har audio uchun avtomatik video
+   - video uzunligi musiqa uzunligiga teng
+   - kliplar yetmasa qayta ishlatiladi
+   - har trekda tartib random, bir xil opening ketma-ketligini takrorlamaslikka harakat qiladi
+   - 16:9 yoki 9:16
 
 ## Ishga tushirish
-1. ZIP'ni alohida papkaga oching.
-2. Windows 10/11 va **Node.js 22+** bo‘lsin.
-3. `START_PC.bat` ni ikki marta bosing.
-4. Birinchi ishga tushishda `npm` paketlar va rasmiy `yt-dlp.exe` internetdan avtomatik yuklanadi.
-5. Brauzer `http://localhost:3000` da ochiladi.
+- Node.js 22+ o‘rnating.
+- `START_PC.bat` ni ishga tushiring.
+- Birinchi marta npm paketlar va yt-dlp avtomatik tayyorlanadi.
+- Brauzerda http://localhost:3000 ochiladi.
 
-## Asosiy funksiyalar
-- 1–500 ta YouTube / youtu.be / Shorts link
-- Har bir link yangi qatorda
-- Ctrl+Enter bilan tez start
-- Dublikat linklarni avtomatik ajratish
-- 5s / 6s / 7s / aralash 5–7s
-- Audio olib tashlanadi
-- 480p / 720p / 1080p / 1440p / 2160p limit
-- Klip miqdori limiti
-- Jami hajm MB limiti
-- Birinchi limit yoki ikkala limit rejimi
-- Har klipdan keyin real jami hajm
-- Xato video bo‘lsa keyingisiga davom etadi
-- Jarayonni to‘xtatish
-- Har manba video ishlangach diskdan o‘chiriladi
-- Yakunda ZIP
-- Temp ish papkalari avtomatik tozalanadi
+Default papkalar:
+- `workspace/input`
+- `workspace/clips`
+- `workspace/audio`
+- `workspace/mixes`
 
-## Eslatma
-YouTube extractorlari va sayt tomoni vaqt o‘tishi bilan o‘zgaradi. Dastur `yt-dlp.exe`ni birinchi ishga tushishda rasmiy GitHub release manzilidan oladi. Keyin kerak bo‘lsa `tools/yt-dlp.exe` faylini o‘chirib `START_PC.bat`ni qayta ishga tushirish orqali eng yangi versiyani qayta yuklatish mumkin.
-
-Faqat o‘zingizga tegishli yoki yuklab olish/qayta ishlashga ruxsatingiz bo‘lgan videolardan foydalaning.
+Faqat o‘zingizga tegishli yoki qayta ishlash/yuklab olishga ruxsatingiz bo‘lgan media bilan foydalaning.
