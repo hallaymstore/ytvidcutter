@@ -1,4 +1,5 @@
 node_modules/
+tools/yt-dlp.exe
+tools/yt-dlp
 .env
 *.log
-.DS_Store
