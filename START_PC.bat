@@ -1,43 +1,27 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title YT Video Cutter PRO
-
+title YT Video + AutoMix PRO v3
 where node >nul 2>nul
 if errorlevel 1 (
-  echo.
-  echo [XATO] Node.js topilmadi.
-  echo Node.js 22 yoki undan yangi versiyasini o'rnating.
+  echo [XATO] Node.js topilmadi. Node.js 22 yoki undan yangi versiyani o'rnating.
   echo https://nodejs.org/
-  echo.
   pause
   exit /b 1
 )
-
-for /f "tokens=1 delims=." %%a in ('node -p "process.versions.node"') do set NODE_MAJOR=%%a
-if %NODE_MAJOR% LSS 22 (
-  echo.
-  echo [XATO] Node.js %NODE_MAJOR% juda eski. Node.js 22+ kerak.
-  echo.
-  pause
-  exit /b 1
-)
-
 if not exist "node_modules" (
-  echo [1/2] Birinchi ishga tushirish: paketlar o'rnatilmoqda...
+  echo Birinchi ishga tushirish: paketlar o'rnatilmoqda...
   call npm install
   if errorlevel 1 (
-    echo.
-    echo npm install xato berdi. Internetni tekshiring.
+    echo [XATO] npm install bajarilmadi.
     pause
     exit /b 1
   )
 )
-
-echo [2/2] Server ishga tushmoqda...
-start "" cmd /c "timeout /t 3 /nobreak >nul & start http://localhost:3000"
+if not exist "workspace\input" mkdir "workspace\input"
+if not exist "workspace\clips" mkdir "workspace\clips"
+if not exist "workspace\audio" mkdir "workspace\audio"
+if not exist "workspace\mixes" mkdir "workspace\mixes"
+start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:3000"
 call npm start
-
-echo.
-echo Server to'xtadi.
 pause
