@@ -1,5 +1,128 @@
-<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#09111f"><title>Video Cutter PRO — 5/6/7s Silent Clips</title><meta name="description" content="Ko‘p videoni 5/6/7 soniyali ovozsiz MP4 kliplarga kesish va ZIP qilish."><link rel="stylesheet" href="/styles.css"></head><body><main class="shell"><header class="topbar"><div><div class="eyebrow">HALLAYM TOOLS</div><h1>Video Cutter PRO</h1><p>1–100+ video → 5/6/7s silent MP4 → limit → ZIP.</p></div><div class="health" id="health"><span></span> Tekshirilmoqda…</div></header>
-<section class="grid"><article class="card input-card"><div class="card-head"><div><b>1. Video fayllar</b><small>Ko‘p faylni birdan tanlang yoki shu yerga sudrab tashlang.</small></div><span class="pill" id="fileCount">0 FILE</span></div><div class="drop" id="dropZone"><div class="drop-icon">＋</div><b>Videolarni tanlang</b><p>MP4, MOV, MKV, WEBM, AVI, M4V</p><button class="ghost" id="chooseBtn" type="button">📁 Fayllarni tanlash</button><input id="fileInput" type="file" accept="video/*,.mkv,.avi,.m4v" multiple hidden></div><div class="file-list" id="fileList"><span>Hali video tanlanmagan.</span></div><div class="input-meta"><span>Bir martada 1–500 fayl</span><span>Upload ketma-ket qilinadi</span></div></article>
-<aside class="card settings-card"><div class="card-head"><div><b>2. Kesish sozlamalari</b><small>Audio avtomatik olib tashlanadi.</small></div><span class="pill">NO SOUND</span></div><div class="field-row three"><label><span>Uzunlik</span><select id="segmentMode"><option value="mixed">Aralash 5–7s</option><option value="5">5 soniya</option><option value="6">6 soniya</option><option value="7">7 soniya</option></select></label><label><span>Tezlik</span><select id="preset"><option value="ultrafast">Eng tez</option><option value="superfast">Juda tez</option><option value="veryfast" selected>Tez / balans</option><option value="faster">Sifatliroq</option><option value="fast">Sifatli</option></select></label><label><span>CRF</span><input id="crf" type="number" min="18" max="32" value="23"></label></div><div class="divider"></div><div class="field-row three"><label><span>Klip miqdori limiti</span><input id="clipCount" type="number" min="0" value="0" placeholder="0 = limitsiz"></label><label><span>Jami hajm limiti (MB)</span><input id="totalMB" type="number" min="0" step="10" value="0" placeholder="0 = limitsiz"></label><label><span>Qachon to‘xtasin?</span><select id="stopMode"><option value="first">Birinchi limitga yetganda</option><option value="both">Ikkalasi ham bajarilganda</option></select></label></div><p class="hint">Masalan: <b>500 klip</b> va <b>1000 MB</b>. Har tayyor klipning real hajmi hisoblanadi.</p><button class="primary" id="startBtn" type="button">⬆ Upload va kesishni boshlash</button></aside></section>
-<section class="card status-card hidden" id="statusCard"><div class="status-top"><div><div class="eyebrow">JARAYON</div><h2 id="statusTitle">Tayyorlanmoqda…</h2><p id="statusMessage"></p></div><div class="actions"><button id="cancelBtn" class="danger" type="button">■ To‘xtatish</button><a id="downloadBtn" class="download hidden" href="#">⬇ ZIP yuklab olish</a></div></div><div class="progress"><i id="progressBar"></i></div><div class="stats"><div><span>Kliplar</span><b id="clipsStat">0</b></div><div><span>Jami hajm</span><b id="sizeStat">0 MB</b></div><div><span>Fayllar</span><b id="videosStat">0 / 0</b></div><div><span>Xatolar</span><b id="errorsStat">0</b></div></div><div class="lastclip" id="lastClip">Hali klip yo‘q.</div><details id="errorBox" class="errors hidden"><summary>Xatolar</summary><pre id="errorsText"></pre></details></section>
-<footer>O‘zingizga tegishli yoki qayta ishlashga ruxsatingiz bo‘lgan video fayllardan foydalaning. Temp fayllar avtomatik o‘chiriladi.</footer></main><script src="/app.js" defer></script></body></html>
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#08111e">
+  <title>YT Video Cutter PRO</title>
+  <meta name="description" content="Ko‘p YouTube linkni 5/6/7 soniyali ovozsiz MP4 kliplarga kesish va ZIP qilish uchun lokal PC dastur.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">HALLAYM LOCAL TOOL</div>
+      <h1>YT Video Cutter PRO</h1>
+      <p>1–500 YouTube link → 5/6/7 soniyali NO SOUND kliplar → ZIP</p>
+    </div>
+    <div class="health" id="health"><span></span> Tekshirilmoqda…</div>
+  </header>
+
+  <section class="grid">
+    <article class="card input-card">
+      <div class="card-head">
+        <div><b>1. YouTube linklar</b><small>Har bir linkni yangi qatorga yozing. 1 ta ham, 100+ ta ham bo‘ladi.</small></div>
+        <span class="pill" id="linkCount">0 LINK</span>
+      </div>
+      <textarea id="links" spellcheck="false" placeholder="https://www.youtube.com/watch?v=...
+https://youtu.be/...
+https://www.youtube.com/shorts/..."></textarea>
+      <div class="input-meta">
+        <span>Enter / Shift+Enter — yangi qator</span>
+        <span>Ctrl+Enter — boshlash</span>
+      </div>
+      <div class="quick-actions">
+        <button class="ghost" id="cleanBtn" type="button">Linklarni tozalash</button>
+        <button class="ghost" id="demoBtn" type="button">Dublikatlarni olib tashlash</button>
+      </div>
+    </article>
+
+    <aside class="card settings-card">
+      <div class="card-head">
+        <div><b>2. Kesish sozlamalari</b><small>Ovoz avtomatik olib tashlanadi.</small></div>
+        <span class="pill">NO SOUND</span>
+      </div>
+
+      <div class="field-row three">
+        <label><span>Klip uzunligi</span>
+          <select id="segmentMode">
+            <option value="mixed" selected>Aralash 5–7s</option>
+            <option value="5">5 soniya</option>
+            <option value="6">6 soniya</option>
+            <option value="7">7 soniya</option>
+          </select>
+        </label>
+        <label><span>Video sifati</span>
+          <select id="maxHeight">
+            <option value="480">480p</option>
+            <option value="720">720p</option>
+            <option value="1080" selected>1080p</option>
+            <option value="1440">1440p</option>
+            <option value="2160">2160p</option>
+          </select>
+        </label>
+        <label><span>Kesish tezligi</span>
+          <select id="preset">
+            <option value="ultrafast">Eng tez</option>
+            <option value="superfast">Juda tez</option>
+            <option value="veryfast" selected>Tez / balans</option>
+            <option value="faster">Sifatliroq</option>
+            <option value="fast">Sifatli</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field-row three">
+        <label><span>Klip miqdori limiti</span><input id="clipCount" type="number" min="0" value="0" placeholder="0 = limitsiz"></label>
+        <label><span>Jami hajm limiti (MB)</span><input id="totalMB" type="number" min="0" step="10" value="0" placeholder="0 = limitsiz"></label>
+        <label><span>To‘xtash qoidasi</span>
+          <select id="stopMode">
+            <option value="first" selected>Birinchi limitga yetganda</option>
+            <option value="both">Ikkala limit bajarilganda</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="field-row one compact">
+        <label><span>CRF sifat (18–32)</span><input id="crf" type="number" min="18" max="32" value="23"></label>
+      </div>
+
+      <p class="hint">Masalan: <b>300 ta klip</b> yoki <b>1500 MB</b>. Har bir tayyor klipdan keyin real hajm hisoblanadi va kerakli limitga yetganda qolgan linklar ochilmaydi.</p>
+      <button class="primary" id="startBtn" type="button">▶ Yuklash va kesishni boshlash</button>
+    </aside>
+  </section>
+
+  <section class="card status-card hidden" id="statusCard">
+    <div class="status-top">
+      <div>
+        <div class="eyebrow">JARAYON</div>
+        <h2 id="statusTitle">Tayyorlanmoqda…</h2>
+        <p id="statusMessage"></p>
+      </div>
+      <div class="actions">
+        <button id="cancelBtn" class="danger" type="button">■ To‘xtatish</button>
+        <a id="downloadBtn" class="download hidden" href="#">⬇ ZIP yuklab olish</a>
+      </div>
+    </div>
+
+    <div class="progress"><i id="progressBar"></i></div>
+
+    <div class="stats">
+      <div><span>Kliplar</span><b id="clipsStat">0</b></div>
+      <div><span>Jami hajm</span><b id="sizeStat">0 MB</b></div>
+      <div><span>Videolar</span><b id="videosStat">0 / 0</b></div>
+      <div><span>Xatolar</span><b id="errorsStat">0</b></div>
+    </div>
+
+    <div class="lastclip" id="lastClip">Hali klip yo‘q.</div>
+    <details id="errorBox" class="errors hidden"><summary>Xatolar</summary><pre id="errorsText"></pre></details>
+  </section>
+
+  <footer>Bu lokal dastur. Faqat o‘zingizga tegishli yoki qayta ishlashga ruxsatingiz bor videolardan foydalaning.</footer>
+</main>
+<script src="/app.js" defer></script>
+</body>
+</html>
