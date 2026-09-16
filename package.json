@@ -1,17 +1,12 @@
 {
-  "name": "ytvidcutter",
-  "version": "2.0.0",
+  "name": "yt-video-automix-pro",
+  "version": "3.0.0",
   "private": true,
-  "description": "Local batch YouTube cutter: 5/6/7 second silent clips with target count/size and ZIP export.",
+  "description": "Local YouTube/local cutter + audio extractor + AutoMix for Windows",
   "main": "server.js",
   "type": "commonjs",
-  "engines": {
-    "node": ">=22.0.0"
-  },
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
-  },
+  "engines": { "node": ">=22.0.0" },
+  "scripts": { "start": "node server.js", "check": "node --check server.js && node --check public/app.js" },
   "dependencies": {
     "archiver": "7.0.1",
     "express": "4.21.2",
