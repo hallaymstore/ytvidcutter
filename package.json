@@ -1,18 +1,22 @@
 {
   "name": "ytvidcutter",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Batch silent video cutter: 5/6/7 second clips with count/size targets and ZIP export.",
+  "description": "Local batch YouTube cutter: 5/6/7 second silent clips with target count/size and ZIP export.",
   "main": "server.js",
   "type": "commonjs",
-  "engines": { "node": ">=20.0.0" },
-  "scripts": { "start": "node server.js", "dev": "node server.js" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
   "dependencies": {
     "archiver": "7.0.1",
     "express": "4.21.2",
     "express-rate-limit": "7.5.0",
     "ffmpeg-static": "5.3.0",
-    "helmet": "8.1.0",
-    "multer": "1.4.5-lts.2"
+    "helmet": "8.1.0"
   }
 }
